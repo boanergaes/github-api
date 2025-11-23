@@ -31,7 +31,7 @@ export function isCatched(key) {
 }
 
 export function clearCatch() {
-    localStorage.removeItem('catch')
+    localStorage.setItem('catch', JSON.stringify({}))
 }
 
 export default initCatch

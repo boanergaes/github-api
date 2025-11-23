@@ -1,5 +1,6 @@
 // import axios from "axios";
 import { useState } from "react";
+import { clearCatch } from "../Catch";
 
 export default function CreateRepo() {
     const github_token = import.meta.env.VITE_GITHUB_TOKEN
@@ -34,6 +35,7 @@ export default function CreateRepo() {
         })
         .then((reply) => {
             setCreationResponse(reply)
+            clearCatch()
         })
         .catch((err) => {
             setError(err.message || 'Unexpected Error occured!')
