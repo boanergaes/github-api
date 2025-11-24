@@ -10,20 +10,20 @@ export default function RepoMain() {
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState('')
 
-    const fetchURL = `https://api.github.com/repos/${username}/${reponame}`
+    const repoURL = `https://api.github.com/repos/${username}/${reponame}`
 
     async function fetchRepo() {
-        if (isCatched(fetchURL)) {
-            setRepo(grabCatch(fetchURL))
+        if (isCatched(repoURL)) {
+            setRepo(grabCatch(repoURL))
             setLoading(false)
             return
         }
 
         try {
-            const response = await fetch(fetchURL)
+            const response = await fetch(repoURL)
             const fetchedRepo = await response.json()
             setRepo(fetchedRepo)
-            storeCatch(fetchURL, fetchedRepo)
+            storeCatch(repoURL, fetchedRepo)
         } catch(err) {
             setError(err.message)
         } finally {
@@ -53,7 +53,7 @@ export default function RepoMain() {
     }
 
     return (
-        <div className="grid grid-cols-[1fr_30rem] gap-12">
+        <div className="grid grid-cols-[1fr_30rem] gap-8">
             <CodePanel repo={repo} />
             <MessagePanel />
         </div>

@@ -1,54 +1,44 @@
-import { useState } from "react"
-import { clearCatch } from "../Catch"
-
-function DeleteRepo({username, reponame, destroyer}) {
-    const [deleting, setDeleting] = useState(false)
-
-    return (
-        <div className="absolute w-screen h-screen top-0 left-0 flex items-center bg-[#000000b9]">
-            <div className="px-4 pt-3 m-auto z-20 w-[600px] h-[150px] flex flex-col justify-around bg-gray-800 rounded-md">
-                <p>Are you sure you want to delete "{reponame}"? {deleting && 'Deleting...'}</p>
-                <div className="grid grid-cols-2 gap-3">
-                    <button onClick={() => destroyer(false)}>No</button>
-                    <button onClick={() => repoDeletionCarrier(username, reponame, destroyer, setDeleting)}>Yes</button>
-                </div>
-            </div>
-        </div>
-    )
-}
-
-function repoDeletionCarrier(username, reponame, destroyer, setDeleting) {
-    const deleteURL = `https://api.github.com/repos/${username}/${reponame}`
-    const github_token = import.meta.env.VITE_GITHUB_TOKEN
-
-    setDeleting(true)
-
-    fetch(deleteURL, {
-        'method': 'delete',
-        'headers': {
-            'Accept': 'Application/json',
-            'Authorization': `Bearer ${github_token}`
-        }
-    })
-    .then((res) => {
-        if (res.ok) {
-            destroyer(false)
-            setDeleting(false)
-            clearCatch() //perhaps i need to find a way to remove only the catch related to the related repo
-            alert('Successfully deleted the repository!')
-        }
-    })
-    .catch((err) => {
-        alert('Failed to delete repository')
-        console.log(err)
-    })   
-}
+import { useEffect, useState } from "react"
+import { Link } from "react-router-dom"
+import DeleteRepo from "./DeleteRepo"
+import { FileIcon, FolderIcon } from "./Icons/Icons"
 
 export default function CodePanel({repo}) {
     const [delTriggered, setDelTriggered] = useState(false)
+    const [loadingFiles, setLoadingFiles] = useState(true)
+    const [contents, setContents] = useState([])
+    const [error, setError] = useState('')
+
+    const contentURL = `https://api.github.com/repos/${repo.owner.login}/${repo.name}/contents`
+
+    function fetchRepoContents() {
+        fetch(contentURL, {
+            'headers': {
+                'Accept': 'Application/json'
+            }
+        })
+        .then((res) => {
+            // if (!res.ok) throw new Error('Could not fetch repository Contents!');
+            return res.json()
+        })
+        .then((data) => {
+            if (data.message === 'This repository is empty.') throw new Error(data.message)
+            setContents(data)
+            setLoadingFiles(false)
+        })
+        .catch((err) => {
+            setError(err.message)
+            setLoadingFiles(false)
+            console.error(err)
+        })
+    }
+
+    useEffect(() => {
+        fetchRepoContents()
+    }, [])
 
     return (
-        <div className="">
+        <div className="overflow-scroll h-screen pr-4">
             <div className="flex items-end gap-4 border-b border-gray-600 pb-3">
                 <h1 className="text-[1.8rem]">{repo.full_name}</h1>
 
@@ -57,8 +47,8 @@ export default function CodePanel({repo}) {
                 <a href={repo.html_url} target="_blank">GitHub-{'>'}</a>
             </div>
 
-            <div className="py-8">
-                <div className="flex justify-between">
+            <div className="flex flex-col gap-8 py-8 h-full">
+                <div className="flex justify-between border-b border-gray-600 pb-4">
                     <button>Stars: {repo.stargazers_count}</button>
                     <div className="flex gap-6">
                         <button className="">Edit</button>
@@ -67,6 +57,49 @@ export default function CodePanel({repo}) {
                         <button>Clone</button>
                         <button className="text-red-700" onClick={() => setDelTriggered(true)}>Delete</button>
                     </div>
+                </div>
+
+                {/* file structure and code display */}
+                <div className="flex flex-col gap-3 p-4 border  border-gray-600 rounded-2xl">
+                    {loadingFiles && <p>Loading Files...</p>}
+
+                    {error && <p className="text-red-800">{error}</p>}
+
+                    {!loadingFiles && !error && !contents && <p>This repository is empty!</p>}
+
+                    {/* fist load the folders */}
+                    {!loadingFiles && !error && contents && (
+                        contents.filter((item) => item.type === 'dir').map((item) => {
+                            return (
+                                <Link key={item.sha} to='/' className="border-b border-gray-700 pb-1">
+                                    <div className="flex gap-2">
+                                        <span>{<FolderIcon />}</span>
+                                        <p>{item.name}</p>
+                                    </div>
+                                </Link>
+                            )
+                        })
+                    )}
+
+                    {/* then load the files */}
+                    {!loadingFiles && !error && contents && (
+                        contents.filter((item) => item.type !== 'dir').map((item) => {
+                            return (
+                                <Link key={item.sha} to='/' className="border-b border-gray-700 pb-1">
+                                    <div className="flex gap-2">
+                                        <span>{<FileIcon />}</span>
+                                        <p>{item.name}</p>
+                                    </div>
+                                </Link>
+                            )
+                        })
+                    )}
+                </div>
+
+                {/* readme display */}
+                <div className="border  border-gray-600 rounded-2xl h-fit p-4">
+                    <h1 className="text-3xl border-b border-gray-700 mb-4">README.md</h1>
+                    {repo.description ? <p>{repo.description}</p> : <p>No / empty README (Description) file!</p>}
                 </div>
             </div>
             {delTriggered && <DeleteRepo username={repo.owner.login} reponame={repo.name} destroyer={setDelTriggered} />}

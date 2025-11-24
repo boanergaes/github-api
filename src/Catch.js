@@ -10,6 +10,7 @@ export function grabCatchObj() {
 }
 
 export function grabCatch(key) {
+    console.log('catch retrieved with key:', key)
     const Catch = grabCatchObj()
     return Catch[key]
 }
